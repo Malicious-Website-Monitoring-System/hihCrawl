@@ -52,16 +52,18 @@ class ImageSpider(scrapy.Spider):
             min_image_height = 50  # 최소 이미지 높이
             width, height = img.size
 
-            #넘어간 item은 pipelines에서 사용
             if width > min_image_width and height > min_image_height:
                 #이미지 전처리 함수 사용여부
                 #img = self.clean_image(img)
 
+                #tesseract사용, 영어 뽑으려면 kor+eng 하면 됨
                 text = pytesseract.image_to_string(img, lang='kor')
                 gettext = self.process_text(text)
+                
                 #1) 리스트에 저장
                 self.get.extend(gettext)
                 yield None
+                
                 #2) 아이템으로 넘기기
                 #item = ProjectItem()
                 #item['text'] = gettext
