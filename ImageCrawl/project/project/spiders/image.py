@@ -10,17 +10,21 @@ from urllib.parse import urljoin
 from ..items import ProjectItem
 
 #pytesseract 사용 전 https://github.com/UB-Mannheim/tesseract/wiki 설치!!!!
+#시작부터 오류 뜨면 VPN 사용 권장
+
 #테서랙트 경로
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
 class ImageSpider(scrapy.Spider):
     name = "image"
-    #예시링크
+    #예시 링크
     start_urls = [
         "https://newtoki338.com/"
     ]
 
+    #저장할 리스트
+    get = []
     #도메인 가져오기
     def parse(self, response):
         #parse에서 넘길 때는 yield from 사용!!!!!
@@ -55,9 +59,13 @@ class ImageSpider(scrapy.Spider):
 
                 text = pytesseract.image_to_string(img, lang='kor')
                 gettext = self.process_text(text)
-                item = ProjectItem()
-                item['text'] = gettext
-                yield item
+                #1) 리스트에 저장
+                self.get.extend(gettext)
+                yield None
+                #2) 아이템으로 넘기기
+                #item = ProjectItem()
+                #item['text'] = gettext
+                #yield item
 
             yield None
 
@@ -85,3 +93,9 @@ class ImageSpider(scrapy.Spider):
 
         filtered = [word for word in cleaned_word_list if len(word) > 1]
         return filtered
+
+    #스파이더 종료
+    def closed(self, reason):
+        print("리스트 출력")
+        print(self.get)
+
