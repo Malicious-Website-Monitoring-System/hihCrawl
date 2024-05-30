@@ -8,7 +8,6 @@ from urllib.parse import urljoin
 from collections import deque, Counter
 
 #pytesseract 사용 전 https://github.com/UB-Mannheim/tesseract/wiki 설치!!!!
-#테서랙트 경로
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
@@ -17,8 +16,8 @@ class ImageSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super(ImageSpider, self).__init__(*args, **kwargs)
-        self.divide_file = open('divide.txt', 'w')  # 텍스트 단어를 기록할 파일 열기
-        self.image_file = open('image.txt', 'w')  # 이미지 단어를 기록할 파일 열기
+        self.divide_file = open('divide.txt', 'w') 
+        self.image_file = open('image.txt', 'w')
         self.hosts_queue = deque(open('D:/hosts.txt', 'r', encoding='utf-8').read().strip().split("\n"))
         self.logger.info(f"Loaded {len(self.hosts_queue)} URLs from hosts.txt")
 
@@ -31,27 +30,24 @@ class ImageSpider(scrapy.Spider):
 
     def parse(self, response):
         current_url = response.url
-
-        # 이미지 텍스트 추출 및 파일 기록
         texts = []
 
-# 이부분 참고 부탁드려요!!
+# 1) 이부분 참고 부탁드려요!!
         image_texts = self.extract_in_image(response, current_url)
         yield from (text for text in image_texts)
         if image_texts:
             texts.extend(image_texts)
 # 여기까지
 
-        count_words = self.extract_words_count(texts)  # 단어 개수 세기
-        self.save_words_count(current_url, count_words)  # 단어 개수 파일에 저장
+        count_words = self.extract_words_count(texts)
+        self.save_words_count(current_url, count_words) 
 
         if self.hosts_queue:
             next_url = self.hosts_queue.popleft()
             yield scrapy.Request(url=next_url, callback=self.parse, errback=self.errback)
 
-    # 이미지에서 단어 추출하는 코드
     def extract_in_image(self, response, current_url):
-        self.image_file.write(f"{current_url}\n")  # URL 기록
+        self.image_file.write(f"{current_url}\n")  
         img_urls = response.css('img::attr(src)').extract()
         for img_url in img_urls:
             if not img_url.startswith(('http', 'https')):
@@ -67,23 +63,21 @@ class ImageSpider(scrapy.Spider):
         try:
             img = Image.open(BytesIO(response.body))
 
-            # 이미지 형식 확인 추가
             if img.format not in ['JPEG', 'PNG', 'GIF']:
                 self.logger.error(f"Unsupported image format: {img.format}")
                 return
 
-            min_image_width = 50  # 최소 이미지 너비
-            min_image_height = 50  # 최소 이미지 높이
+            min_image_width = 50  
+            min_image_height = 50  
             width, height = img.size
             self.logger.info(f"Image size: {width}x{height}")
 
+# 2) kor+eng로 수정
             if width > min_image_width and height > min_image_height:
-                # tesseract사용
                 text = pytesseract.image_to_string(img, lang='kor+eng')
                 gettext = self.process_text(text)
                 self.logger.info(f"Extracted text: {gettext}")
 
-                # 이미지 URL과 텍스트 기록
                 if gettext:
                     self.image_file.write(f"{img_url} : {', '.join(gettext)}\n")
                     return gettext
@@ -94,7 +88,8 @@ class ImageSpider(scrapy.Spider):
 
     def process_text(self, text):
         text = re.sub(r'\b[ㄱ-ㅎㅏ-ㅣ]\b', '', text)
-        text = re.sub('[a-zA-Z0-9]', '', text)
+        # 3) 여기 re.sub('[a-zA-Z0-9]', '', text) 이렇게 되어 있을텐데 [0-9] 이걸로 수정 부탁드립니다.
+        text = re.sub('[0-9]', '', text)
         text = re.sub(r'[^\w\s]', '', text)
         text = re.sub(r'\d+', '', text)
         text = re.sub(r'\s+', ' ', text)
@@ -103,11 +98,9 @@ class ImageSpider(scrapy.Spider):
         filtered = [word for word in cleaned_word_list if len(word) > 1]
         return filtered
 
-    # 단어 개수 추출하기
     def extract_words_count(self, words):
         return dict(Counter(words))
 
-    # 단어 개수 추출한 거 파일에 저장하기
     def save_words_count(self, url, count_words):
         self.logger.info(f"Saving word counts for URL: {url}")
         for word, count in count_words.items():
