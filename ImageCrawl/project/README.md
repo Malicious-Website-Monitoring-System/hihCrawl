@@ -14,8 +14,8 @@ https://github.com/UB-Mannheim/tesseract/wiki 해당 링크 들어가 맞는 버
 
 #0607, image_modify 수정
 
-1(50번째 줄). image 불러오는 속성은 src와 data-original(추가)
-src 속성은 이미지를 즉시 로드하여 표시하는 데 사용되고, data-original 속성은 이미지를 나중에 필요할 때 로드하는 데 사용
+1(50번째 줄). image 불러오는 속성은 src(기존) + Lazy Loading(추가)
+src 속성은 브라우저에게 이미지를 즉시 로드, 지연 로딩은 이미지를 필요한 시점에만 로드
 
 
 2(71번째 줄). gif 파일 추출 시 첫 프레임만 추출되는 경향이 있음
