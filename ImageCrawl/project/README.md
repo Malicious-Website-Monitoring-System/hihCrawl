@@ -15,6 +15,7 @@ https://github.com/UB-Mannheim/tesseract/wiki 해당 링크 들어가 맞는 버
 #0607, image_modify 참고
 
 수정
+
 1(50번째 줄). image 불러오는 속성은 src와 data-original(추가)
 src 속성은 이미지를 즉시 로드하여 표시하는 데 사용되고, data-original 속성은 이미지를 나중에 필요할 때 로드하는 데 사용
 
