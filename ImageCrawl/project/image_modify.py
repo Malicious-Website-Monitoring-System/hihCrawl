@@ -47,7 +47,7 @@ class ImageSpider(scrapy.Spider):
     def extract_in_image(self, response, original_url):
         self.image_file.write(f"{original_url}\n")
         #수정: src 속성은 이미지를 즉시 로드하여 표시하는 데 사용되고, data-original 속성은 이미지를 나중에 필요할 때 로드하는 데 사용
-        img_urls = response.css('img::attr(src), img::attr(data-original)').extract()
+        img_urls = response.css('img::attr(src), img::attr(data-original), img::attr(data-src)').extract()
         print(img_urls, len(img_urls))
         for img_url in img_urls:
             if not img_url.startswith(('http', 'https')):
