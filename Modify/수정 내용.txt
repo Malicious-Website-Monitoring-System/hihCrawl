@@ -1,0 +1,88 @@
+1. 자동화 수정
+
+https://stackoverflow.com/questions/51785215/setup-a-cron-job-in-django-in-windows
+Django-crontab은 window에서 사용 불가 -> django_apscheduler 패키지를 이용했습니다.
+
+pip install django-apscheduler
+
+---------------------------------------------------------------
+config/setting.py
+
+#스케쥴러 설정
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+# 자동으로 스케쥴러 실행
+SCHEDULER_DEFAULT = True
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'classify',
+    'urlcrawl',
+    'django_apscheduler'
+]
+
+
+--------------------------------------------------------------
+urlcrawl/task.py 파일 생성
+
+바로 크롤링 함수들을 스케쥴러에 집어넣기 전에 
+실험 상 urlcrawl/views에 간단한 함수 2개를 생성하여 실험 -> 돌아감
+후에 실행할 함수를 불러와서 실행해 보았습니다.
+
+참고: https://ediblepotato.tistory.com/3
+
+python manage.py migrate django_apscheduler
+python manage.py runserver --noreload 로 실행
+
+
+: start_crawl -> url 크롤링 할 때 작업이 너무 과부화됨(cpu 터질뻔 햇어요) -> 비동기 or 속도 조절 필수**
+: classify_urls -> 얘는 잘 돌아감니다.
+
+---------------------------------------------------------------
+urlcrawl/apps.py 파일 수정
+
+    def ready(self):
+        if settings.SCHEDULER_DEFAULT:
+            from . import task
+            task.start()
+
+--------------------------------------------------------------
+
+2. chat-gpt 문자 출력 오류 대비 코드 수정 + 예외처리 classify/classify.py 
+async def classify_with_keywords 함수 수정
+
+2024-07-02 18:05:44,844 - classify.classify - DEBUG - original classification: 1 (성인사이트) 가끔 이렇게 출력됨
+2024-07-02 18:05:44,844 - classify.classify - DEBUG - Received classification: 1 이렇게 수정
+
+--------------------------------------------------------------------
+
+3. 만약 유사도 점수가 동일하게 나올 시 리스트로 저장 리턴 classify/classify.py 
+-> 일단 이렇게 하기는 했는데 형평성에 어긋난 것 같아서 가중치 부여 방식이 더 나을 것 같기는 합니다...
+-> 비슷한 문제로 결과가 0, 2, 1, 3 이렇게 나왔을 때 출력을 어떻게 해야할지도 생각해보아야 할 것 같아요
+
+async def check_similarity_with_predefined(host):
+async def final_classification(host): 함수 수정
+
+ex) 도박 성인 불법 정상
+	1    1      0     0
+일 때 도박과 성인을 리스트에 넣어 return 후 classifications.extend 로 넣어준다.
+
+2024-07-02 17:54:28,756 - classify.classify - DEBUG - Similarity scores: {'도박사이트': 0, '성인사이트': 1, '불법저작물배포사이트': 0, '정상': 1}
+2024-07-02 17:54:28,756 - classify.classify - DEBUG - Most similar categories: ['성인사이트', '정상']
+2024-07-02 17:54:28,756 - classify.classify - DEBUG - Similarity classification: [1, 3]
+classifications -> ['0', '2', 1, 3]
+filtered_classification -> [0, 2, 1, 3]
+
+----------------------------------------------------------------------------
+
+4. question 길이가 너무 길 때를 대비 classify/classify.py 
+
+def tokenize_text(text):
+def truncate_text_by_token_limit(text, max_tokens=12000):
+async def classify_with_keywords(qa):
+
+함수 생성과 수정
